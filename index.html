@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte de votre serveur Minecraft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Définir un fond de page et la police */
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        /* Conteneur principal */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* En-tête */
+        header {
+            text-align: center;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        /* Section principale contenant la carte */
+        .map-container {
+            position: relative;
+            text-align: center;
+            margin-top: 30px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .map-container img {
+            width: 100%;
+            height: auto;
+            max-width: 1000px;
+            border-radius: 8px;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            transform-origin: center center;
+        }
+
+        /* Gestion du zoom */
+        .map-container {
+            cursor: grab;
+        }
+
+        .map-container:active {
+            cursor: grabbing;
+        }
+
+        /* Section des informations supplémentaires et boutons */
+        .info {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .info p {
+            font-size: 1.2rem;
+            color: #555;
+        }
+
+        .btn-container {
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 0.9rem;
+            color: #777;
+        }
+
+        /* Message d'erreur si l'image ne charge pas */
+        .error-message {
+            color: red;
+            font-size: 1.2rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- En-tête -->
+        <header>
+            <h1>Carte interactive de votre serveur Minecraft</h1>
+            <p>Suivez les dernières évolutions de votre serveur Minecraft avec cette carte mise à jour tous les jours !</p>
+        </header>
+
+        <!-- Section de la carte -->
+        <div class="map-container" id="mapContainer">
+            <h2>Carte du Serveur</h2>
+            <!-- Affichage de la carte -->
+            <img id="map" src="carte.png" alt="Carte du serveur Minecraft">
+            <!-- Message d'erreur si l'image ne charge pas -->
+            <p id="error-message" class="error-message">La carte n'a pas pu être chargée. Veuillez vérifier que le fichier existe et a le bon chemin.</p>
+        </div>
+
+        <!-- Informations supplémentaires et boutons -->
+        <div class="info">
+            <p>La carte est mise à jour automatiquement tous les jours à minuit. Cliquez sur le bouton ci-dessous pour voir les dernières évolutions !</p>
+        </div>
+
+        <div class="btn-container">
+            <!-- Bouton pour télécharger ou rafraîchir la carte -->
+            <button class="btn" onclick="window.location.reload();">Rafraîchir la carte</button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; 2024 - Mon Serveur Minecraft</p>
+        </div>
+    </div>
+
+    <script>
+        const map = document.getElementById('map');
+        const mapContainer = document.getElementById('mapContainer');
+
+        let scale = 1;
+        let isPanning = false;
+        let startX, startY;
+        let originX = 0.5; // Origine du zoom sur l'axe X (en pourcentage)
+        let originY = 0.5; // Origine du zoom sur l'axe Y (en pourcentage)
+
+        // Fonction pour gérer le zoom avec la molette de la souris
+        mapContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const rect = map.getBoundingClientRect();
+            const offsetX = (e.clientX - rect.left) / rect.width;
+            const offsetY = (e.clientY - rect.top) / rect.height;
+
+            const deltaScale = e.deltaY * -0.01;
+            const newScale = Math.min(Math.max(1, scale + deltaScale), 100); // Limiter le zoom entre 1x et 100x
+
+            originX = offsetX;
+            originY = offsetY;
+
+            map.style.transformOrigin = `${originX * 100}% ${originY * 100}%`;
+            map.style.transform = `scale(${newScale})`;
+
+            scale = newScale;
+        });
+
+        // Gestion du clic pour le déplacement
+        mapContainer.addEventListener('mousedown', (e) => {
+            isPanning = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            mapContainer.style.cursor = 'grabbing';
+        });
+
+        mapContainer.addEventListener('mouseup', () => {
+            isPanning = false;
+            mapContainer.style.cursor = 'grab';
+        });
+
+        mapContainer.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const currentTransform = map.style.transform;
+            const translateMatch = /translate\((.*?)px,\s*(.*?)px\)/.exec(currentTransform);
+            const currentX = translateMatch ? parseFloat(translateMatch[1]) : 0;
+            const currentY = translateMatch ? parseFloat(translateMatch[2]) : 0;
+
+            map.style.transform = `translate(${currentX + dx}px, ${currentY + dy}px) scale(${scale})`;
+        });
+
+        // Ajouter un paramètre unique à l'URL de l'image pour éviter le cache
+        const versionedSrc = "carte.png?version=2" + new Date().getTime();
+        map.src = versionedSrc;
+
+        // Vérification du chargement de l'image
+        map.onload = function() {
+            document.getElementById('error-message').style.display = 'none';
+        };
+
+        map.onerror = function() {
+            document.getElementById('error-message').style.display = 'block';
+        };
+    </script>
+
+</body>
+</html>
